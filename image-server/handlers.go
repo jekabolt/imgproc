@@ -3,13 +3,15 @@ package server
 import (
 	"bytes"
 	"container/heap"
+	"crypto/sha512"
+	"encoding/hex"
+	"image"
 	"image/jpeg"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
 	quads "github.com/jekabolt/go-quads"
 )
@@ -25,7 +27,11 @@ func (pr *ProcRouter) handleDotImage(w http.ResponseWriter, r *http.Request) {
 		logger.Errorf("handleDotImage:jpeg.Decode: %v", err.Error())
 		return
 	}
-	filename := strconv.Itoa(int(time.Now().Unix())) + ".jpg"
+
+	sha512 := sha512.New()
+	sha512.Write(body)
+	filename := hex.EncodeToString(sha512.Sum(nil))[:20] + ".jpg"
+	// filename := strconv.Itoa(int(time.Now().Unix())) + ".jpg"
 	out, err := os.Create("./out/" + filename)
 	if err != nil {
 		logger.Errorf("handleDotImage:os.Create: %v", err.Error())
@@ -67,17 +73,11 @@ func (pr *ProcRouter) handleDotImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO: save quad iamge
-	// filename = strconv.Itoa(int(time.Now().Unix())) + "Q.jpg"
-	// out, err = os.Create("./out/" + filename)
-	// if err != nil {
-	// 	logger.Errorf("handleDotImage:os.Create: %v", err.Error())
-	// 	return
-	// }
-	// jpeg.Encode(out, imgs, &jpeg.Options{
-	// 	Quality: 100,
-	// })
+	ResponseImage(w, img)
 
+}
+
+func ResponseImage(w http.ResponseWriter, img image.Image) {
 	buffer := new(bytes.Buffer)
 	if err := jpeg.Encode(buffer, img, nil); err != nil {
 		log.Println("unable to encode image.")
@@ -88,5 +88,4 @@ func (pr *ProcRouter) handleDotImage(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write(buffer.Bytes()); err != nil {
 		log.Println("unable to write image.")
 	}
-
 }
