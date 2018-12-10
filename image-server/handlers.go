@@ -5,6 +5,7 @@ import (
 	"container/heap"
 	"image/jpeg"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -44,7 +45,6 @@ func (pr *ProcRouter) handleDotImage(w http.ResponseWriter, r *http.Request) {
 		logger.Errorf("handleDotImage:cropImage: %v", err.Error())
 		return
 	}
-	// jpeg.Encode(out, img, &jpeg.Options{Quality: 100})
 	imgNRGBA, err := quads.ToNRGBA(img)
 	if err != nil {
 		logger.Errorf("handleDotImage:quads.DecodeImage: %v", err.Error())
@@ -61,19 +61,32 @@ func (pr *ProcRouter) handleDotImage(w http.ResponseWriter, r *http.Request) {
 	mh := make(quads.MinHeap, 1)
 	mh[0] = headNode
 	heap.Init(&mh)
-	imgs, err := quads.IterateV2(&mh, headNode, 1000, "0,0,0,255")
+	img, err = quads.IterateV2(&mh, headNode, 1000, "0,0,0,255")
 	if err != nil {
 		logger.Errorf("handleDotImage:quads.IterateV2: %v", err.Error())
 		return
 	}
-	filename = strconv.Itoa(int(time.Now().Unix())) + "Q.jpg"
-	out, err = os.Create("./out/" + filename)
-	if err != nil {
-		logger.Errorf("handleDotImage:os.Create: %v", err.Error())
-		return
+
+	//TODO: save quad iamge
+	// filename = strconv.Itoa(int(time.Now().Unix())) + "Q.jpg"
+	// out, err = os.Create("./out/" + filename)
+	// if err != nil {
+	// 	logger.Errorf("handleDotImage:os.Create: %v", err.Error())
+	// 	return
+	// }
+	// jpeg.Encode(out, imgs, &jpeg.Options{
+	// 	Quality: 100,
+	// })
+
+	buffer := new(bytes.Buffer)
+	if err := jpeg.Encode(buffer, img, nil); err != nil {
+		log.Println("unable to encode image.")
 	}
-	jpeg.Encode(out, imgs, &jpeg.Options{
-		Quality: 100,
-	})
+
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Length", strconv.Itoa(len(buffer.Bytes())))
+	if _, err := w.Write(buffer.Bytes()); err != nil {
+		log.Println("unable to write image.")
+	}
 
 }

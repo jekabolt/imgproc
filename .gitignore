@@ -1,3 +1,6 @@
 cmd/imgproc
 cmd/out/*.jpg
 .DS_Store
+*/*.jpg
+*/*.png
+*/*.jpeg
